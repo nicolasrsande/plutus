@@ -30,6 +30,13 @@ module Plutus
   #
   # @author Michael Bulat
   class Account < ActiveRecord::Base
+
+    if Plutus.enable_tenancy
+      include Plutus::Tenancy
+    else
+      include Plutus::NoTenancy
+    end
+
     class_attribute :normal_credit_balance
 
     has_many :amounts
@@ -43,13 +50,7 @@ module Plutus
     validates :rollup_code, presence: true, numericality: { greater_than_or_equal_to: 100 }
     validates :code, presence: true, numericality: { greater_than_or_equal_to: 100 }
     validates :code, numericality: { greater_than_or_equal_to: :rollup_code,
-                                     message: 'must be greater than or equal to Rollup Code.'}
-
-    if Plutus.enable_tenancy
-      include Plutus::Tenancy
-    else
-      include Plutus::NoTenancy
-    end
+                                     message: 'must be greater than or equal to Rollup Code.' }
 
     # The balance of the account. This instance method is intended for use only
     # on instances of account subclasses.
@@ -125,7 +126,7 @@ module Plutus
     def child_accounts
       raise StandardError, 'the account is NOT a rollup account' unless rollup_account?
 
-      self.class.name.constantize.where(rollup_code: rollup_code)
+      self.class.name.constantize.where('rollup_code == ?, code != ?', rollup_code, code)
     end
 
     # This method checks if the account is a rollup_account
