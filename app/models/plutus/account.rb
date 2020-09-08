@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 module Plutus
   # The Account class represents accounts in the system. Each account must be subclassed as one of the following types:
   #
@@ -53,13 +51,6 @@ module Plutus
       include Plutus::NoTenancy
     end
 
-    # This method implements a method to get all child accounts when a master account is required for balance
-    def child_accounts
-      raise StandardError, 'the account is NOT a rollup account.' unless rollup_code == code
-
-      self.class.where('rollup_code == code ')
-    end
-
     # The balance of the account. This instance method is intended for use only
     # on instances of account subclasses.
     #
@@ -83,7 +74,7 @@ module Plutus
     # @return [BigDecimal] The decimal value balance
     def balance(options = {})
       raise(NoMethodError, "undefined method 'balance'") unless self.class == Plutus::Account
-      raise(NoMethodError, "can't run 'balance' on a rollup account - run rollup_balance") unless rollup_code != code
+      raise(NoMethodError, "can't run 'balance' on a rollup account - run rollup_balance") if rollup_account?
 
       if normal_credit_balance ^ contra
         credits_balance(options) - debits_balance(options)
@@ -92,9 +83,9 @@ module Plutus
       end
     end
 
-    # The balance of the rollup account. The Rollup Account don't have its own balance. It is calculated by the sum of
-    # the other accounts associated by the Rollup Code. This instance method is intended for use only
-    # on instances of account subclasses.
+    # The balance of the rollup account. The Rollup Account don't have its own balance.
+    # It is calculated by the sum of the other accounts associated by the Rollup Code.
+    # This instance method is intended for use only on instances of account that are rollup accounts.
     #
     # If the account has a normal credit balance, the debits are subtracted from the credits
     # unless this is a contra account, in which case credits are substracted from debits.
@@ -106,26 +97,41 @@ module Plutus
     # :from_date and :to_date may be strings of the form "yyyy-mm-dd" or Ruby Date objects
     #
     # @example
-    #   >> roll_up_account.rollup_balance({:from_date => "2000-01-01", :to_date => Date.today})
+    #   >> account.rollup_balance({:from_date => "2000-01-01", :to_date => Date.today})
     #   => #<BigDecimal:103259bb8,'0.1E4',4(12)>
     #
     # @example
-    #   >> roll_up_account.rollup_balance
+    #   >> account.rollup_balance
     #   => #<BigDecimal:103259bb8,'0.2E4',4(12)>
     #
-    # @return [BigDecimal] The decimal value balance
-    def rollup_balance
-      raise(NoMethodError, "can't run 'rollup_balance' on a normal account - run balance") unless rollup_code == code
+    # @return [Class::BigDecimal] The decimal value balance
+    def rollup_balance(options = {})
+      raise(NoMethodError, "can't run 'rollup_balance' on a normal account - run 'balance'") unless rollup_account?
 
-      accounts_balance = BigDecimal('0')
+      account_balance = BigDecimal('0')
       child_accounts.each do |account|
         if account.contra
-          accounts_balance -= account.balance(options)
+          account_balance -= account.balance(options)
         else
-          accounts_balance += account.balance(options)
+          account_balance += account.balance(options)
         end
-        accounts_balance
       end
+      account_balance
+    end
+
+    # This method implements a method to get all child accounts when a master account is required for balance
+    #
+    # @return [ActiveRecord::Relation] A relation object of the child accounts for the rollup account
+    def child_accounts
+      raise StandardError, 'the account is NOT a rollup account' unless rollup_account?
+
+      self.class.name.constantize.where(rollup_code: rollup_code)
+    end
+
+    # This method checks if the account is a rollup_account
+    # @return [Boolean]
+    def rollup_account?
+      rollup_code == code
     end
 
     # The credit balance for the account.
@@ -182,20 +188,17 @@ module Plutus
     #
     # @return [BigDecimal] The decimal value balance
     def self.balance(options = {})
-      if new.class == Plutus::Account
-        raise(NoMethodError, "undefined method 'balance'")
-      else
-        accounts_balance = BigDecimal('0')
-        accounts = all
-        accounts.each do |account|
-          if account.contra
-            accounts_balance -= account.balance(options)
-          else
-            accounts_balance += account.balance(options)
-          end
+      raise(NoMethodError, "undefined method 'balance'") if new.class == Plutus::Account
+
+      accounts_balance = BigDecimal('0')
+      all.each do |account|
+        if account.contra
+          accounts_balance -= account.balance(options)
+        else
+          accounts_balance += account.balance(options)
         end
-        accounts_balance
       end
+      accounts_balance
     end
 
     # The trial balance of all accounts in the system. This should always equal zero,
@@ -207,12 +210,9 @@ module Plutus
     #
     # @return [BigDecimal] The decimal value balance of all accounts
     def self.trial_balance
-      if new.class == Plutus::Account
-        Plutus::Asset.balance - (Plutus::Liability.balance + Plutus::Equity.balance + Plutus::Revenue.balance - Plutus::Expense.balance)
-      else
-        raise(NoMethodError, "undefined method 'trial_balance'")
-      end
-    end
+      raise(NoMethodError, "undefined method 'trial_balance'") if new.class == Plutus::Account
 
+      Plutus::Asset.balance - (Plutus::Liability.balance + Plutus::Equity.balance + Plutus::Revenue.balance - Plutus::Expense.balance)
+    end
   end
 end

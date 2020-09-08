@@ -1,30 +1,42 @@
 FactoryGirl.define do
-  factory :account, :class => Plutus::Account do |account|
+  factory :account, class: Plutus::Account do |account|
+    account.code
+    account.rollup_code
     account.name
     account.contra { false }
   end
 
-  factory :asset, :class => Plutus::Asset do |account|
+  factory :asset, class: Plutus::Asset do |account|
+    account.code
+    account.rollup_code
     account.name
     account.contra { false }
   end
 
-  factory :equity, :class => Plutus::Equity do |account|
+  factory :equity, class: Plutus::Equity do |account|
+    account.code
+    account.rollup_code
     account.name
     account.contra { false }
   end
 
-  factory :expense, :class => Plutus::Expense do |account|
+  factory :expense, class: Plutus::Expense do |account|
+    account.code
+    account.rollup_code
     account.name
     account.contra { false }
   end
 
-  factory :liability, :class => Plutus::Liability do |account|
+  factory :liability, class: Plutus::Liability do |account|
+    account.code
+    account.rollup_code
     account.name
     account.contra { false }
   end
 
-  factory :revenue, :class => Plutus::Revenue do |account|
+  factory :revenue, class: Plutus::Revenue do |account|
+    account.code
+    account.rollup_code
     account.name
     account.contra { false }
   end
@@ -32,4 +44,13 @@ FactoryGirl.define do
   sequence :name do |n|
     "Factory Name #{n}"
   end
+
+  sequence :code do |n|
+    n
+  end
+
+  sequence :rollup_code do |n|
+    n + 1
+  end
+
 end

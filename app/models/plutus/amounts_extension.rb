@@ -13,7 +13,7 @@ module Plutus
     #   => #<BigDecimal:103259bb8,'0.2E4',4(12)>
     #
     # @return [BigDecimal] The decimal value balance
-    def balance(hash={})
+    def balance(hash = {})
       if hash[:from_date] && hash[:to_date]
         from_date = hash[:from_date].is_a?(Date) ? hash[:from_date] : Date.parse(hash[:from_date])
         to_date = hash[:to_date].is_a?(Date) ? hash[:to_date] : Date.parse(hash[:to_date])
@@ -28,7 +28,7 @@ module Plutus
     # This is used primarly in the validation step in Plutus::Entry
     # in order to ensure that the debit and credits are canceling out.
     #
-    # Since this does not use the database for sumation, it may be used on non-persisted records.
+    # Since this does not use the database for sum, it may be used on non-persisted records.
     def balance_for_new_record
       balance = BigDecimal('0')
       each do |amount_record|
@@ -36,7 +36,7 @@ module Plutus
           balance += amount_record.amount # unless amount_record.marked_for_destruction?
         end
       end
-      return balance
+      balance
     end
   end
 end
