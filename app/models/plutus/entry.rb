@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Plutus
   # Entries are the recording of debits and credits to various accounts.
   # This table can be thought of as a traditional accounting Journal.
@@ -30,26 +32,35 @@ module Plutus
       belongs_to :commercial_document, polymorphic: true
     end
 
-    has_many :credit_amounts, extend: AmountsExtension, class_name: 'Plutus::CreditAmount', inverse_of: :entry
-    has_many :debit_amounts, extend: AmountsExtension, class_name: 'Plutus::DebitAmount', inverse_of: :entry
+    has_many :credit_amounts,
+             extend: AmountsExtension,
+             class_name: 'Plutus::CreditAmount',
+             inverse_of: :entry,
+             dependent: :destroy
+    has_many :debit_amounts,
+             extend: AmountsExtension,
+             class_name: 'Plutus::DebitAmount',
+             inverse_of: :entry,
+             dependent: :destroy
+
+    # Support construction using 'credits' and 'debits' keys
+    accepts_nested_attributes_for :credit_amounts, :debit_amounts,
+                                  allow_destroy: true
     has_many :credit_accounts,
              through: :credit_amounts,
              source: :account,
-             class_name: 'Plutus::Account',
-             dependent: :destroy
+             class_name: 'Plutus::Account'
     has_many :debit_accounts,
              through: :debit_amounts,
              source: :account,
-             class_name: 'Plutus::Account',
-             dependent: :destroy
+             class_name: 'Plutus::Account'
 
     validates_presence_of :description
-    validate :has_credit_amounts?
-    validate :has_debit_amounts?
+    validate :credit_amounts?
+    validate :debit_amounts?
     validate :amounts_cancel?
 
-    # Support construction using 'credits' and 'debits' keys
-    accepts_nested_attributes_for :credit_amounts, :debit_amounts, allow_destroy: true
+
     alias_method :credits=, :credit_amounts_attributes=
     alias_method :debits=, :debit_amounts_attributes=
     # attr_accessible :credits, :debits
@@ -65,18 +76,18 @@ module Plutus
     end
 
     private
-    
+
     def default_date
-      todays_date = ActiveRecord::Base.default_timezone == :utc ? Time.now.utc : Time.now
-      self.date ||= todays_date
+      today_date = ActiveRecord::Base.default_timezone == :utc ? Time.now.utc : Time.now
+      self.date ||= today_date
     end
 
-    def has_credit_amounts?
-      errors[:base] << 'Entry must have at least one credit amount' if self.credit_amounts.blank?
+    def credit_amounts?
+      errors[:base] << 'Entry must have at least one credit amount' if credit_amounts.blank?
     end
 
-    def has_debit_amounts?
-      errors[:base] << 'Entry must have at least one debit amount' if self.debit_amounts.blank?
+    def debit_amounts?
+      errors[:base] << 'Entry must have at least one debit amount' if debit_amounts.blank?
     end
 
     def amounts_cancel?

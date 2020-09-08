@@ -28,7 +28,7 @@ module Plutus
     #   => #<BigDecimal:103259bb8,'0.2E4',4(12)>
     #
     # @return [BigDecimal] The decimal value balance
-    def balance(options={})
+    def balance(options = {})
       super(options)
     end
 
@@ -49,7 +49,7 @@ module Plutus
     #   => #<BigDecimal:1030fcc98,'0.82875E5',8(20)>
     #
     # @return [BigDecimal] The decimal value balance
-    def self.balance(options={})
+    def self.balance(options = {})
       super(options)
     end
   end

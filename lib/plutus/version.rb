@@ -1,3 +1,3 @@
 module Plutus
-  VERSION = "0.16"
+  VERSION = '1.0'.freeze
 end

@@ -1,10 +1,12 @@
 class CreatePlutusTables < ActiveRecord::Migration[4.2]
   def change
     create_table :plutus_accounts do |t|
+      t.integer :code
+      t.integer :rollup_code
       t.string :name
       t.string :type
       t.boolean :contra, default: false
-
+      t.integer :code
       t.timestamps
     end
     add_index :plutus_accounts, [:name, :type]
